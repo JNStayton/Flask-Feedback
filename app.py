@@ -20,7 +20,7 @@ db.create_all()
 toolbar = DebugToolbarExtension(app)
 
 # These functions are to test 1) whether or not a user is or is not in session 2) Whether or not the logged-in user is the user displayed on the page, 3) 
-def is_logged_in():
+def is_not_logged_in():
     """Returns true if not logged in, so route can redirect an un-logged in user to the login page."""
     if 'user' not in session:
         flash("Uh oh! Looks like you need to either log in or register.", "danger")
@@ -93,7 +93,7 @@ def login():
 @app.route('/users/<username>')
 def show_user(username):
     """Displays user profile page if user is in session, otherwise redirects to home page"""
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     user = User.query.filter_by(username=username).first()
     return render_template('user.html', user=user)
@@ -118,7 +118,7 @@ def show_feedback(username):
     If user in session, but trying to post on a page that isn't theirs, redirects to their page."""
     form = FeedbackForm()
     user=User.query.filter_by(username=username).first()
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     if gatekeeper(user):
         return redirect(f'/users/{session["user"]}')
@@ -138,7 +138,7 @@ def update_feedback(feedback_id):
     """Redirects an unlogged-in user to the home page,
     Redirects a logged in user to their own page if trying to edit a post that isn't theirs,
     Allows user to update one of their feedbacks."""
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     feedback=Feedback.query.get_or_404(feedback_id)
     if gatekeeper(feedback.user):
@@ -161,7 +161,7 @@ def delete_feedback(feedback_id):
     """Redirects un-logged in user to home page;
     Redirects user logged in, but not on their page to their own page;
     Allows user to delete their selected feedback."""
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     feedback=Feedback.query.get_or_404(feedback_id)
     if gatekeeper(feedback.user):
@@ -176,7 +176,7 @@ def delete_feedback(feedback_id):
 @app.route('/secret')
 def secret():
     """Shows secret page to authenticated users, otherwise redirects to home page"""
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     flash("You made it!", "success")
     return render_template('secret.html')
@@ -185,7 +185,7 @@ def secret():
 @app.route('/logout')
 def logout():
     """Logout a user"""
-    if is_logged_in():
+    if is_not_logged_in():
         return redirect('/')
     session.pop('user')
     flash("Goobye!", "success")
