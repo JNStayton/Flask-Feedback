@@ -19,45 +19,67 @@ db.create_all()
 
 toolbar = DebugToolbarExtension(app)
 
+# These functions are to test 1) whether or not a user is or is not in session 2) Whether or not the logged-in user is the user displayed on the page, 3) 
+def is_logged_in():
+    """Returns true if not logged in, so route can redirect an un-logged in user to the login page."""
+    if 'user' not in session:
+        flash("Uh oh! Looks like you need to either log in or register.", "danger")
+        return True
+
+def gatekeeper(user):
+    """Returns true if the user in session is not the user shown on page, prevents users from altering other user's account info, allows for redirection"""
+    if user.username != session['user']:      
+        flash("Uh oh! You aren't authorized to do that.", 'danger')
+        return True
+
+
+def check_session():
+    """Returns true if user is already logged in, allows for redirection"""
+    if 'user' in session:
+        flash(f"You're already logged in!", "danger")
+        return True
+
+
 @app.route('/')
 def homepage():
-    """Redirect to /register"""
-    return redirect('/register')
+    """Show homepage with most recent 5 feedbacks and recent 5 users"""
+    feedback = Feedback.query.order_by(Feedback.id).limit(5).all()
+    users = User.query.order_by(User.username).limit(5).all()
+    return render_template('home.html', feedback=feedback, users=users)
 
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
+    """Runs check_session; redirects to their profile page if logged in, otherwise displays the register form.
+    Registers a new user if username is valid, redirects new user to their profile page"""
+    if check_session():
+        return redirect(f'/users/{session["user"]}')
     form = NewUser()
     if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        email = form.email.data
-        first_name = form.first_name.data
-        last_name = form.last_name.data
-        new_user = User.register(username, password, email, first_name, last_name)
-
+        data = {k:v for k, v in form.data.items() if k != 'csrf_token'}
+        new_user = User.register(**data)
         db.session.add(new_user)
-
         try:
             db.session.commit()
         except IntegrityError:
-            form.username.errors.append('Uh oh! That username is taken. Please pick another!', 'gatekept')
+            form.username.errors.append('Uh oh! That username is taken. Please pick another!')
             return render_template('register.html', form=form)
         
         session['user'] = new_user.username
-        flash(f"{new_user.greet()}", "succcess")
+        flash(f"{new_user.greet()}", "success")
         return redirect(f'/users/{new_user.username}')
     return render_template('register.html', form=form)
 
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
-    """Login a registered user"""
+    """Checks the session for whether or not the user is logged in; redirects to their profile page is they are. Otherwise, logs in a registered user"""
+    if check_session():
+        return redirect(f'/users/{session["user"]}')
     form = LoginForm()
     if form.validate_on_submit():
-        username = form.username.data
-        password=form.password.data
-        user = User.authenticate(username, password)
+        data = {k:v for k, v in form.data.items() if k != 'csrf_token'}
+        user = User.authenticate(**data)
 
         if user:
             flash(f"{user.welcome_back()}", "success")
@@ -70,45 +92,40 @@ def login():
 
 @app.route('/users/<username>')
 def show_user(username):
-    user = User.query.filter_by(username=username).first()
-    if 'user' not in session:
-        flash("Uh oh! Looks like you need to either log in or register.", "gatekept")
+    """Displays user profile page if user is in session, otherwise redirects to home page"""
+    if is_logged_in():
         return redirect('/')
-    else:
-        return render_template('user.html', user=user)
+    user = User.query.filter_by(username=username).first()
+    return render_template('user.html', user=user)
 
 
 @app.route('/users/<username>/delete', methods=["POST"])
 def delete_user(username):
+    """Allows user to delete their account; runs gatekeeper() to make sure users cannot delete other accounts"""
     user = User.query.filter_by(username=username).first()
-    if 'user' not in session:
-        flash("Uh oh! Looks like you need to either log in or register.", "gatekept")
-        return redirect('/')
-    if user.username != session['user']:
-        username = session['user']
-        flash("Uh oh! You can't delete someone else's profile.", 'gatekept')
-        return redirect(f'/users/{username}')
-    else:
-        db.session.delete(user)
-        db.session.commit()
-        flash(f'Successfully deleted {user.username}!', 'success')
-        return redirect('/')
+    if gatekeeper(user):
+        return redirect(f'/users/{session["user"]}')
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'Successfully deleted {user.username}!', 'success')
+    return redirect('/')
 
 
 @app.route('/users/<username>/feedback/add', methods=["GET", "POST"])
 def show_feedback(username):
-    if "user" not in session:
-        flash("Uh oh! You need to either login or register to do that.", "gatekept")
-        return redirect('/')
-
+    """Allows a user in session to post new feedback.
+    If user not in session, redirects to homepage.
+    If user in session, but trying to post on a page that isn't theirs, redirects to their page."""
     form = FeedbackForm()
     user=User.query.filter_by(username=username).first()
+    if is_logged_in():
+        return redirect('/')
+    if gatekeeper(user):
+        return redirect(f'/users/{session["user"]}')
 
     if form.validate_on_submit():
-        title = form.title.data
-        content = form.content.data
-        new_feedback = Feedback(title=title, content=content, username = user.username)
-
+        data = {k:v for k, v in form.data.items() if k != 'csrf_token'}
+        new_feedback = Feedback(**data, username=user.username)
         db.session.add(new_feedback)
         db.session.commit()
         return redirect(f'/users/{username}')
@@ -118,16 +135,14 @@ def show_feedback(username):
 
 @app.route('/feedback/<feedback_id>/update', methods=["GET", "POST"])
 def update_feedback(feedback_id):
-    if "user" not in session:
-        flash("Uh oh! You need to either login or register to do that.", "gatekept")
+    """Redirects an unlogged-in user to the home page,
+    Redirects a logged in user to their own page if trying to edit a post that isn't theirs,
+    Allows user to update one of their feedbacks."""
+    if is_logged_in():
         return redirect('/')
-
     feedback=Feedback.query.get_or_404(feedback_id)
-
-    if feedback.user.username != session['user']:
-        username = session['user']
-        flash("Uh oh! You can't edit someone else's post.", 'gatekept')
-        return redirect(f'/users/{username}')
+    if gatekeeper(feedback.user):
+        return redirect(f'/users/{session["user"]}')
 
     form = FeedbackForm(obj=feedback)
 
@@ -143,41 +158,35 @@ def update_feedback(feedback_id):
 
 @app.route('/feedback/<feedback_id>/delete', methods=["POST"])
 def delete_feedback(feedback_id):
-    if "user" not in session:
-        flash("Uh oh! You need to either login or register to do that.", "gatekept")
+    """Redirects un-logged in user to home page;
+    Redirects user logged in, but not on their page to their own page;
+    Allows user to delete their selected feedback."""
+    if is_logged_in():
         return redirect('/')
-
     feedback=Feedback.query.get_or_404(feedback_id)
+    if gatekeeper(feedback.user):
+        return redirect(f'/users/{session["user"]}')
 
-    if feedback.user.username != session['user']:
-        username = session['user']
-        flash("Uh oh! You can't delete someone else's post.", 'gatekept')
-        return redirect(f'/users/{username}')
-
-    if feedback.user.username == session['user']:
-        db.session.delete(feedback)
-        db.session.commit()
-        flash('Successfully deleted feedback!', 'success')
-        return redirect(f'/users/{feedback.user.username}')
-
-    flash("Looks like you don't have permission to do that.", 'gatekept')
+    db.session.delete(feedback)
+    db.session.commit()
+    flash('Successfully deleted feedback!', 'success')
     return redirect(f'/users/{feedback.user.username}')
 
 
 @app.route('/secret')
 def secret():
-    """Shows secret page to authenticated users"""
-    if 'user' not in session:
-        flash("Uh oh, looks like you need to register to see this cool stuff.")
+    """Shows secret page to authenticated users, otherwise redirects to home page"""
+    if is_logged_in():
         return redirect('/')
-    else:
-        flash("You made it!", "success")
-        return render_template('secret.html')
+    flash("You made it!", "success")
+    return render_template('secret.html')
 
 
 @app.route('/logout')
 def logout():
     """Logout a user"""
+    if is_logged_in():
+        return redirect('/')
     session.pop('user')
     flash("Goobye!")
     return redirect('/')

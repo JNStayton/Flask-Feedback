@@ -1,24 +1,10 @@
 {% extends 'base.html' %}
-
+{% block title %} Update Feedback {% endblock %}
 {% block content %}
 
 <h3>Update Feedback</h3>
 <form action="/feedback/{{feedback.id}}/update" method="POST">
-
-    {{ form.hidden_tag() }}
-  
-    {% for field in form
-        if field.widget.input_type != 'hidden' %}
-    <p>
-      {{ field.label }}
-      {{ field }}
-  
-      {% for error in field.errors %}
-      <span>{{ error }}</span>
-      {% endfor %}
-    </p>
-    {% endfor %}
-  
+{% include 'form-template.html' %}  
     <button type="submit">Submit Updates</button>
   </form>
 

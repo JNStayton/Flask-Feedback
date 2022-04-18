@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% block title %} Home {% endblock %}
+<h3 class="my-3">Recent Feedback</h3>
+{% for fb in feedback %}
+<div class="card my-2">
+    <div class="card-header">
+        <b>{{fb.title}}</b>
+    </div>
+    <div class="card-body">
+      <blockquote class="blockquote mb-0">
+        <p>{{fb.content}}</p>
+        <footer class="blockquote-footer">{{fb.user.username}}</footer>
+      </blockquote>
+    </div>
+    <div class="card-footer">
+        {% if session['user'] == fb.user.username %}
+         <a class="btn btn-outline-success" href="/feedback/{{feedback.id}}/update"><i class="fa-solid fa-pen-to-square"></i></a>
+        <form style="display: inline;" action="/feedback/{{feedback.id}}/delete" method="POST">
+            <button class="btn btn-danger"><i class="fa-solid fa-trash-can"></i></button>
+        </form>
+        {% endif %}
+    </div>
+  </div>
+{% endfor %}
+
+
+<h3>New Users</h3>
+<ul>
+{% for user in users %}
+<li><a href="/users/{{user.username}}">{{user.get_full_name()}}</a></li>
+{% endfor %}
+</ul>
+
+{% endblock %}

@@ -1,35 +1,49 @@
 {% extends 'base.html' %}
 
+{% block title %} {{user.username}} {% endblock %}
+
 {% block content %}
 
 {% if 'user' in session %}
-<h3>{{user.get_full_name()}}</h3>
 
-<p><b>Email:</b> {{user.email}}</p>
+<div class="card" style="width: 18rem;">
+    <h5 class="card-title card-header">{{user.get_full_name()}}</h5>
+    <div class="card-body">
+      <h6 class="card-subtitle mb-2 text-muted">Username: {{user.username}}</h6>
+      <p class="card-text"><b>Email:</b> {{user.email}}</p>
+    </div>
+      {% if session['user'] == user.username %}
+      <div class="card-footer">
+      <a href="/users/{{user.username}}/feedback/add" style="display: inline;" class="btn btn-info"><i class="fa-solid fa-comment"></i></a>
+      <form style="display: inline;" action="/users/{{user.username}}/delete" method="POST"><button class="btn btn-danger">Delete User</button></form>
+    </div>
+      {% endif %}
+  </div>
 
-{% if session['user'] == user.username %}
-<p><b>Delete user?</b> <form action="/users/{{user.username}}/delete" method="POST"><button>Let's do it</button></form></p>
-{% endif %}
 
+<h4 class="my-3">{{user.first_name}}'s Feedback:</h4>
 
 {% for feedback in user.feedback %}
-
-<h4>{{user.first_name}}'s Feedback:</h4>
-<ul>
-    <li>
-        <b>{{feedback.title}}</b> - {{feedback.content}}
-        <p>Posted by: {{feedback.user.username}}</p>
+<div class="card my-2">
+    <div class="card-header">
+        <b>{{feedback.title}}</b>
+    </div>
+    <div class="card-body">
+      <blockquote class="blockquote mb-0">
+        <p>{{feedback.content}}</p>
+        <footer class="blockquote-footer">{{feedback.user.username}}</footer>
+      </blockquote>
+    </div>
+    <div class="card-footer">
         {% if session['user'] == user.username %}
-        <button><a href="/feedback/{{feedback.id}}/update">Edit</a></button>
+         <a class="btn btn-outline-success" href="/feedback/{{feedback.id}}/update"><i class="fa-solid fa-pen-to-square"></i></a>
         <form style="display: inline;" action="/feedback/{{feedback.id}}/delete" method="POST">
-            <button>Delete</button>
+            <button class="btn btn-danger"><i class="fa-solid fa-trash-can"></i></button>
         </form>
         {% endif %}
-    </li>
-</ul>
+    </div>
+  </div>
 {% endfor %}
-
-<h4><a href="/users/{{user.username}}/feedback/add">Post New Feedback</a></h4>
 
 {% endif %}
 
