@@ -188,5 +188,5 @@ def logout():
     if is_logged_in():
         return redirect('/')
     session.pop('user')
-    flash("Goobye!")
+    flash("Goobye!", "success")
     return redirect('/')

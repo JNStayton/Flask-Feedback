@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-
-{% block content %}
 {% block title %} Home {% endblock %}
+{% block content %}
+
 <h3 class="my-3">Recent Feedback</h3>
 {% for fb in feedback %}
 <div class="card my-2">
@@ -16,8 +16,8 @@
     </div>
     <div class="card-footer">
         {% if session['user'] == fb.user.username %}
-         <a class="btn btn-outline-success" href="/feedback/{{feedback.id}}/update"><i class="fa-solid fa-pen-to-square"></i></a>
-        <form style="display: inline;" action="/feedback/{{feedback.id}}/delete" method="POST">
+         <a class="btn btn-outline-success" href="/feedback/{{fb.id}}/update"><i class="fa-solid fa-pen-to-square"></i></a>
+        <form style="display: inline;" action="/feedback/{{fb.id}}/delete" method="POST">
             <button class="btn btn-danger"><i class="fa-solid fa-trash-can"></i></button>
         </form>
         {% endif %}
