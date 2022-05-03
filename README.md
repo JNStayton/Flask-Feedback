@@ -51,7 +51,7 @@ gatekeeper(user)
 ```python
 check_session()
 ```
->>>Returns true if user is already logged in, allows for redirection; used to prevent a logged in user from attempting to log in again.
+>>Returns true if user is already logged in, allows for redirection; used to prevent a logged in user from attempting to log in again.
 
 #### Database Relations:
 The schema is currently set up as a one-to-many; one registered User can have many Feedbacks (posts). 
