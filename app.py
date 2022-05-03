@@ -21,10 +21,11 @@ toolbar = DebugToolbarExtension(app)
 
 # These functions are to test 1) whether or not a user is or is not in session 2) Whether or not the logged-in user is the user displayed on the page, 3) 
 def is_not_logged_in():
-    """Returns true if not logged in, so route can redirect an un-logged in user to the login page."""
+    """Returns true if the current user is not logged in, so route can redirect an un-logged in user to the login page."""
     if 'user' not in session:
         flash("Uh oh! Looks like you need to either log in or register.", "danger")
         return True
+        
 
 def gatekeeper(user):
     """Returns true if the user in session is not the user shown on page, prevents users from altering other user's account info, allows for redirection"""
