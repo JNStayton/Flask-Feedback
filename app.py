@@ -4,6 +4,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from models import connect_db, db, User, Feedback
 # import forms to use in routes
 from forms import NewUser, LoginForm, FeedbackForm
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
@@ -19,7 +20,12 @@ db.create_all()
 
 toolbar = DebugToolbarExtension(app)
 
-# These functions are to test 1) whether or not a user is or is not in session 2) Whether or not the logged-in user is the user displayed on the page, 3) 
+######################################################################################################
+# These functions are to test:
+# 1. whether or not a user is or is not in session 
+# 2. Whether or not the logged-in user is the user displayed on the page
+######################################################################################################
+
 def is_not_logged_in():
     """Returns true if the current user is not logged in, so route can redirect an un-logged in user to the login page."""
     if 'user' not in session:
@@ -40,14 +46,28 @@ def check_session():
         flash(f"You're already logged in!", "danger")
         return True
 
+######################################################################################################
+# This route leads to the home page
+######################################################################################################
 
 @app.route('/')
 def homepage():
     """Show homepage with most recent 5 feedbacks and recent 5 users"""
-    feedback = Feedback.query.order_by(Feedback.id).limit(5).all()
+    feedback = Feedback.query.order_by(desc(Feedback.id)).limit(5).all()
     users = User.query.order_by(User.username).limit(5).all()
     return render_template('home.html', feedback=feedback, users=users)
 
+######################################################################################################
+# The following routes are for user authentication and functionality, including...
+# 1. Registering a new user
+# 2. Logging in a user
+# 3. Displaying a user's profile
+# 4. Deleting a user's profile
+# 5. Adding "feedback" (a post made by a user)
+# 6. Editing "feedback"
+# 7. A "secret" route only accessible to logged-in registered users
+# 8. Logging out a user
+######################################################################################################
 
 @app.route('/register', methods=["GET", "POST"])
 def register():
